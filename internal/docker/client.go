@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
 )
@@ -100,7 +102,7 @@ func NewClient(socketPath, apiVersion string, logger *logrus.Logger) (*Client, e
 
 // GetRunningContainers retrieves all running containers
 func (c *Client) GetRunningContainers(ctx context.Context) ([]ContainerInfo, error) {
-	containers, err := c.client.ContainerList(ctx, types.ContainerListOptions{
+	containers, err := c.client.ContainerList(ctx, container.ListOptions{
 		All: false, // Only running containers
 	})
 	if err != nil {
@@ -432,7 +434,7 @@ func (c *Client) Health(ctx context.Context) error {
 }
 
 // GetDockerInfo returns information about the Docker daemon
-func (c *Client) GetDockerInfo(ctx context.Context) (*types.Info, error) {
+func (c *Client) GetDockerInfo(ctx context.Context) (*system.Info, error) {
 	info, err := c.client.Info(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Docker info: %w", err)

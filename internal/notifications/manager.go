@@ -215,7 +215,7 @@ func (m *Manager) buildUpdateMessage(updates []ImageUpdate) string {
 
 	if len(updates) == 1 {
 		update := updates[0]
-		message.WriteString(fmt.Sprintf("A newer version of the Docker image is available:\n\n"))
+		message.WriteString("A newer version of the Docker image is available:\n\n")
 		message.WriteString(fmt.Sprintf("🐳 **Image:** %s/%s\n", update.Registry, update.Repository))
 		message.WriteString(fmt.Sprintf("📦 **Container:** %s\n", update.ContainerName))
 		message.WriteString(fmt.Sprintf("📊 **Current Version:** %s\n", update.CurrentTag))
@@ -223,7 +223,7 @@ func (m *Manager) buildUpdateMessage(updates []ImageUpdate) string {
 		message.WriteString(fmt.Sprintf("🕒 **Detected:** %s\n\n", update.UpdateTime.Format("2006-01-02 15:04:05")))
 		message.WriteString("Consider updating your container to get the latest features and security fixes.")
 	} else {
-		message.WriteString(fmt.Sprintf("Multiple Docker images have updates available:\n\n"))
+		message.WriteString("Multiple Docker images have updates available:\n\n")
 
 		for i, update := range updates {
 			message.WriteString(fmt.Sprintf("**%d. %s/%s**\n", i+1, update.Registry, update.Repository))
