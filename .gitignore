@@ -1,0 +1,4 @@
+.env
+configs/config.local.*
+configs/config.dev.*
+build
