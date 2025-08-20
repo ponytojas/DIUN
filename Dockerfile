@@ -21,6 +21,8 @@ COPY . .
 
 # Build the application
 ARG TARGETARCH
+RUN echo "Building for architecture: ${TARGETARCH:-amd64}"
+
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build \
     -ldflags='-w -s -extldflags "-static"' \
     -a -installsuffix cgo \
