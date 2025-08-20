@@ -46,13 +46,7 @@ services:
           memory: 64M
           cpus: "0.1"
 
-    # Health check
-    healthcheck:
-      test: ["/docker-notify", "-test"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    # No health check - relies on container exit code and restart policy
 
     # Depends on test services for demo
     depends_on:

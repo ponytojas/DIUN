@@ -64,13 +64,7 @@ services:
           memory: 64M
           cpus: "0.1"
 
-    # Health check
-    healthcheck:
-      test: ["CMD", "/docker-notify", "-test"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    # No health check - relies on container exit code and restart policy
 
     # User configuration - run as root to access Docker socket
     # For production, consider adding user to docker group instead
