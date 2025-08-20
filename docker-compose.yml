@@ -23,12 +23,33 @@ services:
       - CHECK_INTERVAL=${CHECK_INTERVAL:-30m}
       - TIMEZONE=${TIMEZONE:-UTC}
       - DOCKER_SOCKET=${DOCKER_SOCKET:-unix:///var/run/docker.sock}
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION:-}
       - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USERNAME=${SMTP_USERNAME}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
       - EMAIL_FROM=${EMAIL_FROM}
       - EMAIL_TO=${EMAIL_TO}
+      - EMAIL_SUBJECT=${EMAIL_SUBJECT:-Docker Image Updates}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_IDS=${TELEGRAM_CHAT_IDS}
+      - TELEGRAM_PARSE_MODE=${TELEGRAM_PARSE_MODE:-HTML}
+      - NOTIFICATION_CHANNELS=${NOTIFICATION_CHANNELS:-telegram}
+      - MAX_CONCURRENCY=${MAX_CONCURRENCY:-10}
+      - REGISTRY_TIMEOUT=${REGISTRY_TIMEOUT:-30s}
+      - CHECK_LATEST=${CHECK_LATEST:-false}
+      - CHECK_PRIVATE=${CHECK_PRIVATE:-true}
+      - EXCLUDE_PRERELEASE=${EXCLUDE_PRERELEASE:-true}
+      - EXCLUDE_WINDOWS=${EXCLUDE_WINDOWS:-true}
+      - ONLY_STABLE=${ONLY_STABLE:-true}
+      - INCLUDE_PATTERNS=${INCLUDE_PATTERNS:-}
+      - EXCLUDE_PATTERNS=${EXCLUDE_PATTERNS:-*:latest,scratch:*}
+      - ONCE_PER_UPDATE=${ONCE_PER_UPDATE:-true}
+      - COOLDOWN_PERIOD=${COOLDOWN_PERIOD:-24h}
+      - GROUP_UPDATES=${GROUP_UPDATES:-true}
+      - MAX_UPDATES_PER_NOTIFICATION=${MAX_UPDATES_PER_NOTIFICATION:-10}
+      - CONFIG_CONTENT=${CONFIG_CONTENT:-}
       - LOG_LEVEL=${LOG_LEVEL:-info}
 
     # Labels for container management
@@ -54,50 +75,7 @@ services:
       retries: 3
       start_period: 10s
 
-    # Depends on test services for demo
-    depends_on:
-      - nginx-demo
-      - postgres-demo
-
     # Network configuration
-    networks:
-      - docker-notify-network
-
-  # Demo services to test notifications
-  nginx-demo:
-    image: nginx:1.25-alpine
-    container_name: nginx-demo
-    ports:
-      - "8080:80"
-    labels:
-      - "docker-notify.enable=true"
-    networks:
-      - docker-notify-network
-
-  postgres-demo:
-    image: postgres:15
-    container_name: postgres-demo
-    environment:
-      - POSTGRES_DB=testdb
-      - POSTGRES_USER=testuser
-      - POSTGRES_PASSWORD=testpass
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    labels:
-      - "docker-notify.enable=true"
-    networks:
-      - docker-notify-network
-
-  # Redis demo with specific version to test updates
-  redis-demo:
-    image: redis:7.0-alpine
-    container_name: redis-demo
-    ports:
-      - "6379:6379"
-    labels:
-      - "docker-notify.enable=true"
     networks:
       - docker-notify-network
 

@@ -157,19 +157,139 @@ logging:
 
 ### Environment Variables
 
-You can override configuration with environment variables:
+You can override ANY configuration value with environment variables. This provides multiple ways to configure the service:
 
+#### Application Settings
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `CHECK_INTERVAL` | How often to check for updates | `30m`, `1h`, `24h` |
+| `TIMEZONE` | Timezone for scheduling | `UTC`, `America/New_York` |
+| `MAX_CONCURRENCY` | Max concurrent registry calls | `10` |
+| `REGISTRY_TIMEOUT` | Registry API timeout | `30s` |
+
+#### Docker Settings  
+| Variable | Description | Example |
+|----------|-------------|---------|
 | `DOCKER_SOCKET` | Docker socket path | `unix:///var/run/docker.sock` |
+| `DOCKER_API_VERSION` | Docker API version | `1.43` (empty for auto) |
+
+#### Image Filtering
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `CHECK_LATEST` | Check latest tags | `true`, `false` |
+| `CHECK_PRIVATE` | Check private registries | `true`, `false` |
+| `INCLUDE_PATTERNS` | Whitelist patterns (comma-separated) | `nginx:*,postgres:*` |
+| `EXCLUDE_PATTERNS` | Blacklist patterns (comma-separated) | `*:latest,scratch:*` |
+| `EXCLUDE_PRERELEASE` | Exclude pre-release versions | `true`, `false` |
+| `EXCLUDE_WINDOWS` | Exclude Windows variants | `true`, `false` |
+| `ONLY_STABLE` | Only stable semantic versions | `true`, `false` |
+
+#### Email Notifications
+| Variable | Description | Example |
+|----------|-------------|---------|
 | `SMTP_HOST` | SMTP server hostname | `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP server port | `587` |
 | `SMTP_USERNAME` | SMTP username | `your-email@gmail.com` |
 | `SMTP_PASSWORD` | SMTP password | `your-app-password` |
+| `SMTP_USE_TLS` | Use TLS encryption | `true`, `false` |
 | `EMAIL_FROM` | From email address | `docker-notify@yourdomain.com` |
-| `EMAIL_TO` | To email address | `admin@yourdomain.com` |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token | `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11` |
+| `EMAIL_TO` | To email addresses (comma-separated) | `admin@domain.com,ops@domain.com` |
+| `EMAIL_SUBJECT` | Email subject | `Docker Image Updates` |
+
+#### Telegram Notifications
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather | `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11` |
+| `TELEGRAM_CHAT_IDS` | Chat IDs (comma-separated) | `123456789,-987654321` |
+| `TELEGRAM_PARSE_MODE` | Message formatting | `HTML`, `Markdown` |
+
+#### Notification Behavior
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NOTIFICATION_CHANNELS` | Enabled channels (comma-separated) | `email,telegram` |
+| `ONCE_PER_UPDATE` | Notify once per update | `true`, `false` |
+| `COOLDOWN_PERIOD` | Min time between notifications | `24h`, `1h` |
+| `GROUP_UPDATES` | Group multiple updates | `true`, `false` |
+| `MAX_UPDATES_PER_NOTIFICATION` | Max updates per notification | `10` |
+
+#### Logging
+| Variable | Description | Example |
+|----------|-------------|---------|
 | `LOG_LEVEL` | Log level | `debug`, `info`, `warn`, `error` |
+
+### Configuration Methods
+
+#### Method 1: Environment Variables (Recommended)
+Create a `.env` file or export variables:
+
+```bash
+# Copy the example file
+cp .env.example .env
+# Edit .env with your values
+
+# Or export directly
+export CHECK_INTERVAL="1h"
+export TELEGRAM_BOT_TOKEN="your_token_here"
+export TELEGRAM_CHAT_IDS="123456789"
+
+docker-compose up -d
+```
+
+#### Method 2: Config File + Environment Override
+Use the YAML config file as base and override specific values:
+
+```yaml
+# configs/config.yaml
+app:
+  check_interval: "30m"
+notifications:
+  channels: ["telegram"]
+  telegram:
+    bot_token: "placeholder"
+```
+
+```bash
+# Override bot token via environment
+export TELEGRAM_BOT_TOKEN="real_token_here"
+docker-compose up -d
+```
+
+#### Method 3: Full YAML via Environment Variable
+Pass the entire configuration as YAML content:
+
+```bash
+export CONFIG_CONTENT='
+app:
+  check_interval: "1h"
+  timezone: "America/New_York"
+docker:
+  filters:
+    exclude: ["*:latest"]
+notifications:
+  channels: ["telegram"]
+  telegram:
+    bot_token: "your_token"
+    chat_ids: [123456789]
+'
+
+docker-compose up -d
+```
+
+This method takes precedence over the config file, allowing complete dynamic configuration.
+
+#### Method 4: Runtime Environment Variables
+Pass variables directly to docker-compose:
+
+```bash
+CHECK_INTERVAL=1h TELEGRAM_BOT_TOKEN=your_token docker-compose up -d
+```
+
+### Configuration Examples
+
+See the following files for complete examples:
+- `.env.example` - Environment variables template
+- `scripts/config-example.sh` - Comprehensive configuration script
+- `configs/config.yaml` - Full YAML configuration template
 
 ## 📧 Notification Setup
 

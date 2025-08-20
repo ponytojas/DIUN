@@ -80,3 +80,5 @@ deploy/
 # Backup files
 *.bak
 *.backup
+
+docker-notify

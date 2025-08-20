@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -277,16 +279,23 @@ func LoadConfig(configPath string) (*Config, error) {
 		},
 	}
 
-	// Load from file if it exists
-	if configPath != "" {
-		if _, err := os.Stat(configPath); err == nil {
-			data, err := os.ReadFile(configPath)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read config file: %w", err)
-			}
+	// Check if config content is provided via environment variable
+	if configContent := os.Getenv("CONFIG_CONTENT"); configContent != "" {
+		if err := yaml.Unmarshal([]byte(configContent), config); err != nil {
+			return nil, fmt.Errorf("failed to parse config from CONFIG_CONTENT: %w", err)
+		}
+	} else {
+		// Load from file if it exists
+		if configPath != "" {
+			if _, err := os.Stat(configPath); err == nil {
+				data, err := os.ReadFile(configPath)
+				if err != nil {
+					return nil, fmt.Errorf("failed to read config file: %w", err)
+				}
 
-			if err := yaml.Unmarshal(data, config); err != nil {
-				return nil, fmt.Errorf("failed to parse config file: %w", err)
+				if err := yaml.Unmarshal(data, config); err != nil {
+					return nil, fmt.Errorf("failed to parse config file: %w", err)
+				}
 			}
 		}
 	}
@@ -313,6 +322,14 @@ func (c *Config) loadFromEnv() error {
 	if val := os.Getenv("TIMEZONE"); val != "" {
 		c.App.Timezone = val
 	}
+	if val := os.Getenv("MAX_CONCURRENCY"); val != "" {
+		if parsed, err := parseIntEnv(val); err == nil {
+			c.App.MaxConcurrency = parsed
+		}
+	}
+	if val := os.Getenv("REGISTRY_TIMEOUT"); val != "" {
+		c.App.RegistryTimeout = val
+	}
 
 	// Docker config
 	if val := os.Getenv("DOCKER_SOCKET"); val != "" {
@@ -321,10 +338,39 @@ func (c *Config) loadFromEnv() error {
 	if val := os.Getenv("DOCKER_API_VERSION"); val != "" {
 		c.Docker.APIVersion = val
 	}
+	if val := os.Getenv("CHECK_LATEST"); val != "" {
+		c.Docker.Filters.CheckLatest = parseBoolEnv(val)
+	}
+	if val := os.Getenv("CHECK_PRIVATE"); val != "" {
+		c.Docker.Filters.CheckPrivate = parseBoolEnv(val)
+	}
+	if val := os.Getenv("INCLUDE_PATTERNS"); val != "" {
+		c.Docker.Filters.Include = parseStringSliceEnv(val)
+	}
+	if val := os.Getenv("EXCLUDE_PATTERNS"); val != "" {
+		c.Docker.Filters.Exclude = parseStringSliceEnv(val)
+	}
+	if val := os.Getenv("EXCLUDE_PRERELEASE"); val != "" {
+		c.Docker.Filters.VersionFilters.ExcludePreRelease = parseBoolEnv(val)
+	}
+	if val := os.Getenv("EXCLUDE_WINDOWS"); val != "" {
+		c.Docker.Filters.VersionFilters.ExcludeWindows = parseBoolEnv(val)
+	}
+	if val := os.Getenv("ONLY_STABLE"); val != "" {
+		c.Docker.Filters.VersionFilters.OnlyStable = parseBoolEnv(val)
+	}
 
 	// Notification config
+	if val := os.Getenv("NOTIFICATION_CHANNELS"); val != "" {
+		c.Notifications.Channels = parseStringSliceEnv(val)
+	}
 	if val := os.Getenv("SMTP_HOST"); val != "" {
 		c.Notifications.Email.SMTP.Host = val
+	}
+	if val := os.Getenv("SMTP_PORT"); val != "" {
+		if parsed, err := parseIntEnv(val); err == nil {
+			c.Notifications.Email.SMTP.Port = parsed
+		}
 	}
 	if val := os.Getenv("SMTP_USERNAME"); val != "" {
 		c.Notifications.Email.SMTP.Username = val
@@ -332,14 +378,45 @@ func (c *Config) loadFromEnv() error {
 	if val := os.Getenv("SMTP_PASSWORD"); val != "" {
 		c.Notifications.Email.SMTP.Password = val
 	}
+	if val := os.Getenv("SMTP_USE_TLS"); val != "" {
+		c.Notifications.Email.SMTP.UseTLS = parseBoolEnv(val)
+	}
 	if val := os.Getenv("EMAIL_FROM"); val != "" {
 		c.Notifications.Email.From = val
 	}
 	if val := os.Getenv("EMAIL_TO"); val != "" {
-		c.Notifications.Email.To = []string{val}
+		c.Notifications.Email.To = parseStringSliceEnv(val)
+	}
+	if val := os.Getenv("EMAIL_SUBJECT"); val != "" {
+		c.Notifications.Email.Subject = val
 	}
 	if val := os.Getenv("TELEGRAM_BOT_TOKEN"); val != "" {
 		c.Notifications.Telegram.BotToken = val
+	}
+	if val := os.Getenv("TELEGRAM_CHAT_IDS"); val != "" {
+		c.Notifications.Telegram.ChatIDs = parseInt64SliceEnv(val)
+	}
+	if val := os.Getenv("TELEGRAM_PARSE_MODE"); val != "" {
+		c.Notifications.Telegram.ParseMode = val
+	}
+	if val := os.Getenv("ONCE_PER_UPDATE"); val != "" {
+		c.Notifications.Behavior.OncePerUpdate = parseBoolEnv(val)
+	}
+	if val := os.Getenv("COOLDOWN_PERIOD"); val != "" {
+		c.Notifications.Behavior.CooldownPeriod = val
+	}
+	if val := os.Getenv("GROUP_UPDATES"); val != "" {
+		c.Notifications.Behavior.GroupUpdates = parseBoolEnv(val)
+	}
+	if val := os.Getenv("MAX_UPDATES_PER_NOTIFICATION"); val != "" {
+		if parsed, err := parseIntEnv(val); err == nil {
+			c.Notifications.Behavior.MaxUpdatesPerNotification = parsed
+		}
+	}
+
+	// Logging config
+	if val := os.Getenv("LOG_LEVEL"); val != "" {
+		c.Logging.Level = val
 	}
 
 	return nil
@@ -413,4 +490,49 @@ func (c *Config) IsNotificationChannelEnabled(channel string) bool {
 		}
 	}
 	return false
+}
+
+// Helper functions for parsing environment variables
+
+// parseBoolEnv parses a boolean from an environment variable
+func parseBoolEnv(val string) bool {
+	parsed, _ := strconv.ParseBool(val)
+	return parsed
+}
+
+// parseIntEnv parses an integer from an environment variable
+func parseIntEnv(val string) (int, error) {
+	return strconv.Atoi(val)
+}
+
+// parseStringSliceEnv parses a comma-separated string into a slice
+func parseStringSliceEnv(val string) []string {
+	if val == "" {
+		return []string{}
+	}
+	parts := strings.Split(val, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// parseInt64SliceEnv parses a comma-separated string of integers into an int64 slice
+func parseInt64SliceEnv(val string) []int64 {
+	if val == "" {
+		return []int64{}
+	}
+	parts := strings.Split(val, ",")
+	result := make([]int64, 0, len(parts))
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			if parsed, err := strconv.ParseInt(trimmed, 10, 64); err == nil {
+				result = append(result, parsed)
+			}
+		}
+	}
+	return result
 }
