@@ -20,14 +20,8 @@ RUN go mod download
 COPY . .
 
 # Build the application
-ARG TARGETPLATFORM
-RUN case "$TARGETPLATFORM" in \
-    "linux/amd64") GOARCH=amd64 ;; \
-    "linux/arm64") GOARCH=arm64 ;; \
-    "linux/arm/v7") GOARCH=arm ;; \
-    *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
-    esac && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=$GOARCH go build \
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build \
     -ldflags='-w -s -extldflags "-static"' \
     -a -installsuffix cgo \
     -o docker-notify ./cmd/main.go

@@ -23,6 +23,20 @@ GOFMT := gofmt
 DOCKER := docker
 DOCKER_COMPOSE := docker-compose
 
+# Architecture detection
+ARCH := $(shell uname -m)
+ifeq ($(ARCH),x86_64)
+	DOCKER_PLATFORM := linux/amd64
+else ifeq ($(ARCH),aarch64)
+	DOCKER_PLATFORM := linux/arm64
+else ifeq ($(ARCH),arm64)
+	DOCKER_PLATFORM := linux/arm64
+else ifeq ($(ARCH),armv7l)
+	DOCKER_PLATFORM := linux/arm/v7
+else
+	DOCKER_PLATFORM := linux/amd64
+endif
+
 # Directories
 BUILD_DIR := build
 CMD_DIR := cmd
@@ -30,11 +44,11 @@ INTERNAL_DIR := internal
 CONFIG_DIR := configs
 
 .PHONY: all build clean test test-verbose test-race test-cover vet fmt lint
-.PHONY: docker-build docker-run docker-push docker-clean
-.PHONY: compose-up compose-down compose-logs compose-test
+.PHONY: docker-build docker-build-auto docker-run docker-push docker-clean
+.PHONY: compose-up compose-down compose-logs compose-test compose-build
 .PHONY: deps deps-update deps-verify
 .PHONY: install uninstall
-.PHONY: release help
+.PHONY: release help show-arch
 .PHONY: run-local run-local-test run-local-once run-local-debug
 
 # Default target
@@ -172,11 +186,22 @@ deps-verify:
 	@echo "Verifying dependencies..."
 	$(GOMOD) verify
 
-# Docker build
+# Show detected architecture
+show-arch:
+	@echo "Detected architecture: $(ARCH)"
+	@echo "Docker platform: $(DOCKER_PLATFORM)"
+
+# Docker build (legacy - uses amd64)
 docker-build:
 	@echo "Building Docker image $(DOCKER_IMAGE):$(DOCKER_TAG)..."
 	$(DOCKER) build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 	@echo "Docker image built: $(DOCKER_IMAGE):$(DOCKER_TAG)"
+
+# Docker build with auto-detected architecture
+docker-build-auto:
+	@echo "Building Docker image $(DOCKER_IMAGE):$(DOCKER_TAG) for $(DOCKER_PLATFORM)..."
+	$(DOCKER) build --platform $(DOCKER_PLATFORM) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	@echo "Docker image built: $(DOCKER_IMAGE):$(DOCKER_TAG) for $(DOCKER_PLATFORM)"
 
 # Docker build with version tag
 docker-build-version:
@@ -216,6 +241,10 @@ docker-clean:
 	@$(DOCKER) system prune -f
 
 # Docker Compose operations
+compose-build:
+	@echo "Building services with Docker Compose for $(DOCKER_PLATFORM)..."
+	DOCKER_DEFAULT_PLATFORM=$(DOCKER_PLATFORM) $(DOCKER_COMPOSE) build
+
 compose-up:
 	@echo "Starting services with Docker Compose..."
 	$(DOCKER_COMPOSE) up -d
@@ -236,7 +265,10 @@ compose-test:
 	$(DOCKER_COMPOSE) run --rm docker-notify -test
 
 # Rebuild and restart with Docker Compose
-compose-restart: compose-down docker-build compose-up
+compose-restart: compose-down docker-build-auto compose-up
+
+# Rebuild with auto-architecture and restart with Docker Compose
+compose-restart-auto: compose-down compose-build compose-up
 
 # Install binary to system
 install: build-local
@@ -264,6 +296,9 @@ release: clean test build-all
 
 # Development workflow
 dev: clean fmt vet test build-local
+
+# Development workflow with Docker
+dev-docker: clean fmt vet test docker-build-auto
 
 # CI workflow
 ci: clean fmt-check vet test-race test-cover build
@@ -311,6 +346,7 @@ help:
 	@echo "  deps          - Download dependencies"
 	@echo "  deps-update   - Update dependencies"
 	@echo "  deps-verify   - Verify dependencies"
+	@echo "  show-arch     - Show detected architecture"
 	@echo ""
 	@echo "Local development targets:"
 	@echo "  run-local     - Run with local config (daemon mode)"
@@ -319,23 +355,27 @@ help:
 	@echo "  run-local-debug - Debug mode with local config"
 	@echo ""
 	@echo "Docker targets:"
-	@echo "  docker-build  - Build Docker image"
-	@echo "  docker-run    - Run Docker container"
-	@echo "  docker-test   - Run Docker container in test mode"
-	@echo "  docker-push   - Push Docker image"
-	@echo "  docker-clean  - Clean Docker artifacts"
+	@echo "  docker-build     - Build Docker image (amd64)"
+	@echo "  docker-build-auto - Build Docker image (auto-detect arch)"
+	@echo "  docker-run       - Run Docker container"
+	@echo "  docker-test      - Run Docker container in test mode"
+	@echo "  docker-push      - Push Docker image"
+	@echo "  docker-clean     - Clean Docker artifacts"
 	@echo ""
 	@echo "Docker Compose targets:"
-	@echo "  compose-up    - Start services"
-	@echo "  compose-down  - Stop services"
-	@echo "  compose-logs  - Show logs"
-	@echo "  compose-test  - Test with compose"
+	@echo "  compose-build    - Build services (auto-detect arch)"
+	@echo "  compose-up       - Start services"
+	@echo "  compose-down     - Stop services"
+	@echo "  compose-logs     - Show logs"
+	@echo "  compose-test     - Test with compose"
+	@echo "  compose-restart-auto - Rebuild (auto-arch) and restart"
 	@echo ""
 	@echo "Other targets:"
 	@echo "  install       - Install binary to system"
 	@echo "  uninstall     - Uninstall binary from system"
 	@echo "  release       - Create release archives"
 	@echo "  dev           - Development workflow"
+	@echo "  dev-docker    - Development workflow with Docker"
 	@echo "  ci            - CI workflow"
 	@echo "  check         - Quick pre-commit check"
 	@echo "  help          - Show this help"
@@ -344,3 +384,5 @@ help:
 	@echo "  VERSION=$(VERSION)"
 	@echo "  DOCKER_TAG=$(DOCKER_TAG)"
 	@echo "  DOCKER_IMAGE=$(DOCKER_IMAGE)"
+	@echo "  ARCH=$(ARCH)"
+	@echo "  DOCKER_PLATFORM=$(DOCKER_PLATFORM)"
