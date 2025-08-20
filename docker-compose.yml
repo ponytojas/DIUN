@@ -47,7 +47,7 @@ services:
       - GROUP_UPDATES=${GROUP_UPDATES:-true}
       - MAX_UPDATES_PER_NOTIFICATION=${MAX_UPDATES_PER_NOTIFICATION:-10}
       - CONFIG_CONTENT=${CONFIG_CONTENT:-}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
 
     # Labels for container management
     labels:
@@ -71,6 +71,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+    # User configuration - run as root to access Docker socket
+    # For production, consider adding user to docker group instead
+    user: "0:0"
 
     # Network configuration
     networks:

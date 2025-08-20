@@ -20,7 +20,14 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+ARG TARGETPLATFORM
+RUN case "$TARGETPLATFORM" in \
+    "linux/amd64") GOARCH=amd64 ;; \
+    "linux/arm64") GOARCH=arm64 ;; \
+    "linux/arm/v7") GOARCH=arm ;; \
+    *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
+    esac && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=$GOARCH go build \
     -ldflags='-w -s -extldflags "-static"' \
     -a -installsuffix cgo \
     -o docker-notify ./cmd/main.go
@@ -39,7 +46,9 @@ COPY --from=builder /build/docker-notify /docker-notify
 # Copy default config (this will create the /app directory)
 COPY --from=builder /build/configs/config.yaml /app/config.yaml
 
-# Create directories for logs and data
+# Note: Container needs access to Docker socket
+# Either run as root (less secure) or add user to docker group on host
+# For production, consider: docker run --group-add $(getent group docker | cut -d: -f3)
 USER appuser
 
 # Set environment variables
