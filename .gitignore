@@ -1,4 +1,10 @@
 .env
 configs/config.local.*
 configs/config.dev.*
-build
+
+build/
+build/*
+build/docker-notify
+
+logs/
+logs/*
