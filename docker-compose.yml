@@ -13,7 +13,6 @@ services:
     # Mount Docker socket to access host Docker daemon
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./configs/config.yaml:/etc/docker-notify/config.yaml:ro
       - ./logs:/var/log/docker-notify
 
     # Environment variables (these override .env file if needed)

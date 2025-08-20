@@ -36,15 +36,15 @@ COPY --from=builder /etc/passwd /etc/passwd
 # Copy binary
 COPY --from=builder /build/docker-notify /docker-notify
 
-# Copy default config
-COPY --from=builder /build/configs/config.yaml /etc/docker-notify/config.yaml
+# Copy default config (this will create the /app directory)
+COPY --from=builder /build/configs/config.yaml /app/config.yaml
 
 # Create directories for logs and data
 USER appuser
 
 # Set environment variables
 ENV TZ=UTC
-ENV CONFIG_PATH=/etc/docker-notify/config.yaml
+ENV CONFIG_PATH=/app/config.yaml
 
 # Expose health check endpoint (if implemented)
 EXPOSE 8080
@@ -57,4 +57,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 ENTRYPOINT ["/docker-notify"]
 
 # Default command
-CMD ["-config", "/etc/docker-notify/config.yaml"]
+CMD ["-config", "/app/config.yaml"]
