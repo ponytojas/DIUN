@@ -142,7 +142,7 @@ logging:
   format: "json"
 
   # Log file path (empty for stdout)
-  file: "/var/log/docker-notify/docker-notify.log"
+  file: ""
 
   # Log rotation settings
   max_size: 100 # Maximum size in MB
