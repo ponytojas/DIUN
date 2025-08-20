@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   docker-notify:
     build:
@@ -69,7 +67,7 @@ services:
 
     # Health check
     healthcheck:
-      test: ["/docker-notify", "-test"]
+      test: ["CMD", "/docker-notify", "-test"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -80,8 +78,6 @@ services:
       - docker-notify-network
 
 volumes:
-  postgres-data:
-    driver: local
   logs:
     driver: local
 
