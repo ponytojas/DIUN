@@ -1,0 +1,82 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Development files
+.env
+.env.local
+.env.development
+.env.test
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+docker-notify
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+test/
+coverage.out
+coverage.html
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Dependencies (will be downloaded in container)
+vendor/
+
+# Docker compose override files
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# Local configuration files
+configs/config.local.yaml
+configs/config.dev.yaml
+configs/*.local.*
+
+# Example and template files
+examples/
+templates/
+
+# CI/CD files (not needed in image)
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Deployment files
+k8s/
+kubernetes/
+helm/
+deploy/
+
+# Backup files
+*.bak
+*.backup

@@ -1,0 +1,113 @@
+version: "3.8"
+
+services:
+  docker-notify:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: docker-notify
+    restart: unless-stopped
+
+    # Load environment variables from .env file
+    env_file:
+      - .env
+
+    # Mount Docker socket to access host Docker daemon
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./configs/config.yaml:/etc/docker-notify/config.yaml:ro
+      - ./logs:/var/log/docker-notify
+
+    # Environment variables (these override .env file if needed)
+    environment:
+      - CHECK_INTERVAL=${CHECK_INTERVAL:-30m}
+      - TIMEZONE=${TIMEZONE:-UTC}
+      - DOCKER_SOCKET=${DOCKER_SOCKET:-unix:///var/run/docker.sock}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_TO=${EMAIL_TO}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+    # Labels for container management
+    labels:
+      - "com.docker.compose.project=docker-notify"
+      - "description=Docker image update notification service"
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
+        reservations:
+          memory: 64M
+          cpus: "0.1"
+
+    # Health check
+    healthcheck:
+      test: ["/docker-notify", "-test"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Depends on test services for demo
+    depends_on:
+      - nginx-demo
+      - postgres-demo
+
+    # Network configuration
+    networks:
+      - docker-notify-network
+
+  # Demo services to test notifications
+  nginx-demo:
+    image: nginx:1.25-alpine
+    container_name: nginx-demo
+    ports:
+      - "8080:80"
+    labels:
+      - "docker-notify.enable=true"
+    networks:
+      - docker-notify-network
+
+  postgres-demo:
+    image: postgres:15
+    container_name: postgres-demo
+    environment:
+      - POSTGRES_DB=testdb
+      - POSTGRES_USER=testuser
+      - POSTGRES_PASSWORD=testpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    labels:
+      - "docker-notify.enable=true"
+    networks:
+      - docker-notify-network
+
+  # Redis demo with specific version to test updates
+  redis-demo:
+    image: redis:7.0-alpine
+    container_name: redis-demo
+    ports:
+      - "6379:6379"
+    labels:
+      - "docker-notify.enable=true"
+    networks:
+      - docker-notify-network
+
+volumes:
+  postgres-data:
+    driver: local
+  logs:
+    driver: local
+
+networks:
+  docker-notify-network:
+    driver: bridge
+    name: docker-notify-net

@@ -1,0 +1,150 @@
+# Docker Notify Configuration File
+# This file contains all configuration options for the Docker image update notification service
+
+# Application settings
+app:
+  # How often to check for image updates (examples: "30m", "1h", "24h")
+  check_interval: "30m"
+
+  # Timezone for scheduling (examples: "UTC", "America/New_York", "Europe/London")
+  timezone: "Europe/Madrid"
+
+  # Maximum number of concurrent registry API calls
+  max_concurrency: 10
+
+  # Timeout for registry API calls
+  registry_timeout: "30s"
+
+# Docker daemon settings
+docker:
+  # Docker socket path (usually unix:///var/run/docker.sock)
+  socket_path: "unix:///var/run/docker.sock"
+
+  # Docker API version (leave empty for auto-negotiation)
+  api_version: ""
+
+  # Image filtering options
+  filters:
+    # Whitelist: only check these image patterns (empty = check all)
+    # Supports glob patterns like "nginx:*", "postgres:*", "myregistry.com/*"
+    include: []
+
+    # Blacklist: exclude these image patterns
+    # Examples: ["*:latest", "scratch:*", "alpine:*"]
+    exclude:
+      - "*:latest"
+      - "scratch:*"
+
+    # Whether to check images with 'latest' tag (can be unreliable)
+    check_latest: false
+
+    # Whether to check images from private registries
+    check_private: true
+
+    # Version filtering options (filters individual version tags, not containers)
+    version_filters:
+      # Exclude pre-release versions (alpha, beta, rc, dev, etc.)
+      exclude_prerelease: true
+
+      # Exclude Windows variants (windowsservercore, nanoserver, etc.)
+      exclude_windows: true
+
+      # Custom patterns to exclude from version tags
+      exclude_patterns:
+        - "ltsc"
+        - "insider"
+        # - "arm"     # Uncomment to exclude ARM variants
+        # - "musl"    # Uncomment to exclude musl variants
+
+      # Only consider stable semantic versions (x.y.z format)
+      only_stable: true
+
+# Registry settings
+registry:
+  # Default registry (usually docker.io for DockerHub)
+  default_registry: "docker.io"
+
+  # Custom registries with authentication (if needed)
+  registries:
+    # Example for private registry
+    # - host: "myregistry.com:5000"
+    #   username: "myuser"
+    #   password: "mypassword"
+    #   insecure: false
+
+  # Rate limiting to avoid hitting API limits
+  rate_limit:
+    # Requests per minute
+    requests_per_minute: 100
+    # Burst limit
+    burst: 10
+
+# Notification settings
+notifications:
+  # Enabled notification channels: ["email", "telegram"]
+  channels:
+    # - "email"
+    - "telegram"
+
+  # Email notification settings
+  email:
+    # SMTP server configuration
+    smtp:
+      host: "smtp.gmail.com"
+      port: 587
+      username: "your-email@gmail.com"
+      password: "your-app-password"
+      use_tls: true
+
+    # Email addresses
+    from: "docker-notify@yourdomain.com"
+    to:
+      - "admin@yourdomain.com"
+      - "devops@yourdomain.com"
+
+    # Email subject prefix
+    subject: "Docker Image Updates"
+
+  # Telegram notification settings
+  telegram:
+    # Bot token from @BotFather
+    bot_token: "YOUR_BOT_TOKEN_HERE"
+
+    # Chat IDs to send messages to
+    # You can get your chat ID by messaging @userinfobot
+    chat_ids:
+      - 123456789
+      - -987654321 # Negative for group chats
+
+    # Message formatting (HTML, Markdown, or empty for plain text)
+    parse_mode: "HTML"
+
+  # Notification behavior
+  behavior:
+    # Only notify once per image update (avoid spam)
+    once_per_update: true
+
+    # Minimum time between notifications for the same image
+    cooldown_period: "24h"
+
+    # Group multiple updates into a single notification
+    group_updates: true
+
+    # Maximum number of updates to include in a single notification
+    max_updates_per_notification: 10
+
+# Logging settings
+logging:
+  # Log level: debug, info, warn, error
+  level: "info"
+
+  # Log format: json, text
+  format: "json"
+
+  # Log file path (empty for stdout)
+  file: "/var/log/docker-notify/docker-notify.log"
+
+  # Log rotation settings
+  max_size: 100 # Maximum size in MB
+  max_backups: 3 # Number of old files to keep
+  max_age: 30 # Maximum age in days
